@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinh Phục Bài 21 - Hợp Kim (Offline)</title>
+    <!-- Tailwind CSS (Cần internet để tải lần đầu, hoặc bạn có thể tải file về để dùng offline hoàn toàn) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        .correct-answer {
+            background-color: #dcfce7 !important; /* green-100 */
+            border-color: #22c55e !important; /* green-500 */
+            color: #166534 !important; /* green-800 */
+            font-weight: bold;
+        }
+        .wrong-answer {
+            background-color: #fee2e2 !important; /* red-100 */
+            border-color: #ef4444 !important; /* red-500 */
+            color: #991b1b !important; /* red-800 */
+        }
+        .disabled-option {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555; 
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
+
+    <!-- App Container -->
+    <div id="app" class="flex-1 flex flex-col">
+        <!-- Content will be injected here by JavaScript -->
+    </div>
+
+    <!-- App Scripts (Standard JS, No Modules) -->
+    <script>
+        // --- 1. ICONS (SVG Strings to remove external dependency) ---
+        const ICONS = {
+            award: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>`,
+            play: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
+            clock: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+            checkCircle: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+            xCircle: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+            rotateCcw: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`,
+            bookOpen: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
+            arrowLeft: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
+            trash2: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
+            download: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`
+        };
+
+        // --- 2. QUESTION BANK ---
+        const ORIGINAL_QUESTIONS = [
+          // --- NHẬN BIẾT (9 câu - 15s) ---
+          {
+            id: 1,
+            text: "Hợp kim (Alloy) là vật liệu kim loại có chứa một kim loại cơ bản và:",
+            type: 'NB',
+            options: [
+              "Chỉ một kim loại khác",
+              "Một số kim loại hoặc phi kim khác",
+              "Chỉ các phi kim",
+              "Chỉ các hợp chất ion"
+            ],
+            correctAnswer: 1,
+            explanation: "Hợp kim là vật liệu kim loại có chứa một kim loại cơ bản và một số kim loại hoặc phi kim khác."
+          },
+          {
+            id: 2,
+            text: "Tính chất vật lý nào sau đây của hợp kim thường KHÁC biệt rõ rệt so với kim loại nguyên chất?",
+            type: 'NB',
+            options: [
+              "Dẫn điện tốt hơn",
+              "Nhiệt độ nóng chảy cao hơn",
+              "Nhiệt độ nóng chảy thấp hơn",
+              "Dẫn nhiệt tốt hơn"
+            ],
+            correctAnswer: 2,
+            explanation: "Hợp kim thường có nhiệt độ nóng chảy thấp hơn kim loại nguyên chất thành phần."
+          },
+          {
+            id: 3,
+            text: "Thành phần chính của Steel (thép) là:",
+            type: 'NB',
+            options: [
+              "Iron (Sắt) và Silicon (Silic)",
+              "Iron (Sắt) và Carbon (dưới 2%)",
+              "Iron (Sắt) và Carbon (2% - 5%)",
+              "Aluminium (Nhôm) và Carbon"
+            ],
+            correctAnswer: 1,
+            explanation: "Steel (thép) là hợp kim của Iron (Sắt) với Carbon (hàm lượng C dưới 2%) và một số nguyên tố khác."
+          },
+          {
+            id: 4,
+            text: "Cast iron (gang) khác với Steel (thép) chủ yếu ở hàm lượng nguyên tố nào?",
+            type: 'NB',
+            options: [
+              "Iron (Sắt)",
+              "Carbon",
+              "Sulfur (Lưu huỳnh)",
+              "Manganese (Mangan)"
+            ],
+            correctAnswer: 1,
+            explanation: "Cast iron có hàm lượng Carbon cao hơn (2% - 5%) so với Steel (dưới 2%)."
+          },
+          {
+            id: 5,
+            text: "Hợp kim Brass (đồng thau) là hợp kim của Copper (Đồng) với kim loại nào?",
+            type: 'NB',
+            options: [
+              "Zinc (Kẽm)",
+              "Tin (Thiếc)",
+              "Nickel (Niken)",
+              "Lead (Chì)"
+            ],
+            correctAnswer: 0,
+            explanation: "Brass (đồng thau) là hợp kim của Copper (Đồng) và Zinc (Kẽm)."
+          },
+          {
+            id: 6,
+            text: "Hợp kim Bronze (đồng thiếc) là hợp kim của Copper (Đồng) với kim loại nào?",
+            type: 'NB',
+            options: [
+              "Zinc (Kẽm)",
+              "Tin (Thiếc)",
+              "Aluminium (Nhôm)",
+              "Silver (Bạc)"
+            ],
+            correctAnswer: 1,
+            explanation: "Bronze (đồng thiếc) là hợp kim của Copper (Đồng) và Tin (Thiếc)."
+          },
+          {
+            id: 7,
+            text: "Duralumin là hợp kim quan trọng của kim loại nào?",
+            type: 'NB',
+            options: [
+              "Iron (Sắt)",
+              "Copper (Đồng)",
+              "Aluminium (Nhôm)",
+              "Magnesium (Magie)"
+            ],
+            correctAnswer: 2,
+            explanation: "Duralumin là hợp kim bền, nhẹ của Aluminium (Nhôm) với Copper (Đồng), Magnesium (Magie), Manganese (Mangan)..."
+          },
+          {
+            id: 8,
+            text: "Vàng tây (dùng làm trang sức) là hợp kim của Gold (Vàng) với:",
+            type: 'NB',
+            options: [
+              "Silver (Bạc) và Copper (Đồng)",
+              "Iron (Sắt) và Zinc (Kẽm)",
+              "Lead (Chì) và Tin (Thiếc)",
+              "Mercury (Thủy ngân)"
+            ],
+            correctAnswer: 0,
+            explanation: "Vàng tây thường là hợp kim của Gold (Vàng) với Silver (Bạc) và Copper (Đồng) để tăng độ cứng và giảm giá thành."
+          },
+          {
+            id: 9,
+            text: "Tính chất cơ học chung nổi bật của đa số hợp kim so với kim loại nền là:",
+            type: 'NB',
+            options: [
+              "Mềm hơn, dễ uốn hơn",
+              "Cứng hơn và bền hơn",
+              "Dẫn điện tốt hơn",
+              "Dễ bị ăn mòn hơn"
+            ],
+            correctAnswer: 1,
+            explanation: "Hợp kim thường cứng và bền hơn kim loại nguyên chất do cấu tạo mạng tinh thể bị thay đổi."
+          },
+
+          // --- THÔNG HIỂU (9 câu - 30s) ---
+          {
+            id: 10,
+            text: "Tại sao hợp kim thường cứng hơn kim loại nguyên chất?",
+            type: 'TH',
+            options: [
+              "Do mật độ electron tự do tăng lên",
+              "Do kích thước nguyên tử khác nhau làm xô lệch mạng tinh thể, cản trở sự trượt của các lớp nguyên tử",
+              "Do lực liên kết ion trong hợp kim mạnh hơn",
+              "Do khối lượng riêng của hợp kim nhỏ hơn"
+            ],
+            correctAnswer: 1,
+            explanation: "Sự có mặt của nguyên tử khác kích thước làm mạng tinh thể bị xô lệch, ngăn cản các lớp nguyên tử trượt lên nhau."
+          },
+          {
+            id: 11,
+            text: "So sánh tính dẫn điện của Copper (Đồng) nguyên chất và hợp kim Brass (Đồng thau):",
+            type: 'TH',
+            options: [
+              "Brass dẫn điện tốt hơn Copper (Đồng)",
+              "Brass dẫn điện kém hơn Copper (Đồng)",
+              "Cả hai dẫn điện như nhau",
+              "Brass không dẫn điện"
+            ],
+            correctAnswer: 1,
+            explanation: "Hợp kim dẫn điện và dẫn nhiệt kém hơn kim loại nguyên chất thành phần do cấu trúc mạng tinh thể kém trật tự hơn."
+          },
+          {
+            id: 12,
+            text: "Để hạn chế sự ăn mòn của Steel (thép) trong môi trường không khí ẩm (tạo Inox), người ta thường thêm nguyên tố nào?",
+            type: 'TH',
+            options: [
+              "Chromium (Crom) và Nickel (Niken)",
+              "Lead (Chì) và Tin (Thiếc)",
+              "Sodium (Natri) và Potassium (Kali)",
+              "Calcium (Canxi)"
+            ],
+            correctAnswer: 0,
+            explanation: "Thép không gỉ (Inox) chứa Chromium (Crom) và Nickel (Niken) giúp tạo lớp màng oxide bảo vệ bền vững."
+          },
+          {
+            id: 13,
+            text: "Phát biểu nào sau đây là SAI khi nói về Cast iron (gang)?",
+            type: 'TH',
+            options: [
+              "Gang giòn hơn thép",
+              "Gang có nhiệt độ nóng chảy thấp hơn Iron (Sắt) nguyên chất",
+              "Gang có khả năng đàn hồi kém hơn thép",
+              "Gang chứa hàm lượng Carbon thấp hơn thép"
+            ],
+            correctAnswer: 3,
+            explanation: "Gang chứa hàm lượng Carbon cao hơn thép (2-5% so với <2%). Gang giòn, không đàn hồi tốt như thép."
+          },
+          {
+            id: 14,
+            text: "Tại sao Aluminium alloy (hợp kim nhôm) được ưu tiên dùng trong chế tạo vỏ máy bay?",
+            type: 'TH',
+            options: [
+              "Vì giá thành rẻ nhất",
+              "Vì nhẹ, bền và chịu được sự thay đổi nhiệt độ tốt",
+              "Vì dẫn điện tốt nhất",
+              "Vì có màu sắc đẹp"
+            ],
+            correctAnswer: 1,
+            explanation: "Hợp kim nhôm (như Duralumin) có ưu điểm nổi bật là nhẹ (khối lượng riêng nhỏ) và độ bền cơ học cao."
+          },
+          {
+            id: 15,
+            text: "Nguyên tắc chính để sản xuất Steel (Thép) từ Cast iron (Gang) là gì?",
+            type: 'TH',
+            options: [
+              "Thêm Carbon vào Gang để tăng độ cứng",
+              "Oxi hóa bớt Carbon và các tạp chất (Si, P, S...) trong Gang",
+              "Điện phân nóng chảy Gang",
+              "Dùng khí CO để khử Gang"
+            ],
+            correctAnswer: 1,
+            explanation: "Sản xuất thép từ gang là quá trình oxi hóa các tạp chất trong gang (C, Si, Mn, S, P) để giảm hàm lượng của chúng."
+          },
+          {
+            id: 16,
+            text: "Trong đường dây tải điện cao thế, người ta dùng dây Aluminium (Nhôm) có lõi bằng Steel (Thép). Vai trò của lõi thép là:",
+            type: 'TH',
+            options: [
+              "Tăng khả năng dẫn điện",
+              "Chống ăn mòn",
+              "Tăng độ bền cơ học, chịu lực kéo",
+              "Giảm điện trở suất"
+            ],
+            correctAnswer: 2,
+            explanation: "Nhôm dẫn điện tốt và nhẹ, còn lõi thép giúp dây chịu được lực kéo căng lớn, tăng độ bền cơ học cho dây."
+          },
+          {
+            id: 17,
+            text: "Tại sao trong xây dựng nhà cửa, khung nhôm (Hợp kim nhôm) được sử dụng phổ biến thay vì Nhôm nguyên chất?",
+            type: 'TH',
+            options: [
+              "Vì Nhôm nguyên chất quá cứng, khó gia công",
+              "Vì Hợp kim nhôm cứng hơn, bền hơn và chịu lực tốt hơn",
+              "Vì Hợp kim nhôm dẫn nhiệt kém hơn",
+              "Vì Hợp kim nhôm nặng hơn"
+            ],
+            correctAnswer: 1,
+            explanation: "Nhôm nguyên chất khá mềm. Hợp kim nhôm được cải thiện đáng kể về độ cứng và độ bền, phù hợp làm vật liệu xây dựng."
+          },
+          {
+            id: 18,
+            text: "Nhận định đúng về nhiệt độ nóng chảy của hợp kim thiếc-chì (Solder) dùng để hàn điện:",
+            type: 'TH',
+            options: [
+              "Cao hơn nhiệt độ nóng chảy của Lead (Chì) nguyên chất",
+              "Cao hơn nhiệt độ nóng chảy của Tin (Thiếc) nguyên chất",
+              "Thấp hơn nhiệt độ nóng chảy của cả Tin (Thiếc) và Lead (Chì)",
+              "Bằng tổng nhiệt độ nóng chảy của hai kim loại"
+            ],
+            correctAnswer: 2,
+            explanation: "Hợp kim thiếc-chì (hàn) nóng chảy ở nhiệt độ thấp (~180°C), thấp hơn cả Tin (Thiếc) (232°C) và Lead (Chì) (327°C)."
+          },
+
+          // --- VẬN DỤNG (7 câu - 120s) ---
+          {
+            id: 19,
+            text: "Tình huống: Để sản xuất các thiết bị y tế như dao mổ, kéo phẫu thuật đòi hỏi không gỉ, độ cứng cao và an toàn vệ sinh, người ta dùng loại vật liệu nào?",
+            type: 'VD',
+            options: [
+              "Gang xám (Gray cast iron)",
+              "Thép không gỉ (Stainless steel / Inox)",
+              "Đồng thau (Brass)",
+              "Hợp kim Duralumin"
+            ],
+            correctAnswer: 1,
+            explanation: "Inox (thép không gỉ) trơ về mặt hóa học, không gỉ sét, dễ vệ sinh, phù hợp cho y tế."
+          },
+          {
+            id: 20,
+            text: "Tình huống: Một bộ nồi nấu ăn cao cấp thường được làm bằng Inox 304. Tuy nhiên, đáy nồi thường có lớp Aluminium (Nhôm) hoặc Copper (Đồng) ở giữa. Mục đích chính là gì?",
+            type: 'VD',
+            options: [
+              "Giảm giá thành sản phẩm",
+              "Tăng khả năng dẫn nhiệt và tản nhiệt đều",
+              "Tăng độ cứng cho đáy nồi",
+              "Làm cho nồi nặng hơn để không bị trượt"
+            ],
+            correctAnswer: 1,
+            explanation: "Inox dẫn nhiệt kém hơn Aluminium (Nhôm) và Copper (Đồng). Lớp lõi giúp nhiệt tỏa đều, tránh cháy khét cục bộ."
+          },
+          {
+            id: 21,
+            text: "Để đúc tượng đài chiến thắng (để ngoài trời lâu năm), vật liệu nào sau đây là phù hợp nhất về độ bền và thẩm mỹ?",
+            type: 'VD',
+            options: [
+              "Gang trắng",
+              "Steel (Thép thường)",
+              "Bronze (Đồng thiếc)",
+              "Aluminium (Nhôm) nguyên chất"
+            ],
+            correctAnswer: 2,
+            explanation: "Bronze (đồng thiếc) rất bền trong không khí, chịu ăn mòn tốt và đúc sắc nét, màu sắc đẹp."
+          },
+          {
+            id: 22,
+            text: "Trong xây dựng cầu đường, bê tông cốt thép là vật liệu chủ chốt. Tại sao Steel (Thép) và Bê tông lại kết hợp được với nhau?",
+            type: 'VD',
+            options: [
+              "Vì chúng có cùng khối lượng riêng",
+              "Vì chúng có hệ số giãn nở nhiệt gần bằng nhau",
+              "Vì chúng phản ứng hóa học tạo liên kết bền",
+              "Vì thép làm mềm bê tông"
+    ],
+            correctAnswer: 1,
+            explanation: "Steel (Thép) và bê tông có hệ số giãn nở nhiệt tương đương nhau, nên khi trời nóng/lạnh, chúng không phá vỡ cấu trúc của nhau."
+          },
+          {
+            id: 23,
+            text: "Vỏ của các thiết bị điện tử cao cấp (như điện thoại, laptop) cần nhẹ nhưng tản nhiệt tốt và cứng. Hợp kim nào thường được sử dụng?",
+            type: 'VD',
+            options: [
+              "Cast iron (Gang)",
+              "Magnesium alloy (Hợp kim Magie) hoặc Aluminium alloy",
+              "Lead alloy (Hợp kim Chì)",
+              "Silver alloy (Hợp kim Bạc)"
+            ],
+            correctAnswer: 1,
+            explanation: "Hợp kim Magnesium (Magie)/Aluminium (Nhôm) siêu nhẹ, bền và tản nhiệt tốt, thích hợp cho vỏ thiết bị di động."
+          },
+          {
+            id: 24,
+            text: "18K Gold (Vàng 18K) thường dùng làm trang sức. Con số 18K có ý nghĩa gì về hàm lượng Gold (Vàng)?",
+            type: 'VD',
+            options: [
+              "Chứa 18% Gold (Vàng) nguyên chất",
+              "Chứa 18/24 phần khối lượng là Gold (chiếm 75%)",
+              "Chứa 18 gam Gold (Vàng) trong 100 gam hợp kim",
+              "Chứa 18% tạp chất"
+            ],
+            correctAnswer: 1,
+            explanation: "Vàng nguyên chất là 24K. Vàng 18K chứa 18 phần vàng trên tổng số 24 phần (tức 75% vàng)."
+          },
+          {
+            id: 25,
+            text: "Hợp kim Amalgam (chứa Mercury (Thủy ngân) - Hg) trước đây thường dùng trong nha khoa để trám răng. Tính chất nào giúp nó làm được việc này?",
+            type: 'VD',
+            options: [
+              "Mercury (Thủy ngân) là kim loại lỏng, hòa tan được Silver (Bạc), Tin (Thiếc) tạo hỗn hợp dẻo rồi đông cứng lại",
+              "Mercury (Thủy ngân) có nhiệt độ nóng chảy rất cao",
+              "Mercury (Thủy ngân) có màu trắng rất đẹp",
+              "Mercury (Thủy ngân) diệt khuẩn tuyệt đối"
+            ],
+            correctAnswer: 0,
+            explanation: "Amalgam là hỗn hống của Mercury (Thủy ngân) với Silver (Bạc), Tin (Thiếc)... Ban đầu mềm dẻo dễ tạo hình trám, sau đó cứng lại."
+          }
+        ];
+
+        // --- 3. STATE MANAGEMENT ---
+        const state = {
+            screen: 'start', // start, playing, finished, teacher
+            student: { name: '', className: '' },
+            questions: [],
+            currentIdx: 0,
+            score: 0,
+            correctCount: 0,
+            timer: 0,
+            timerInterval: null,
+            shuffledOptions: [], 
+            showFeedback: false,
+            teacherFilter: ''
+        };
+
+        // --- 4. CORE LOGIC ---
+
+        const shuffleArray = (array) => {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        };
+
+        const getTimerDuration = (type) => {
+            switch (type) {
+                case 'NB': return 15;
+                case 'TH': return 30;
+                case 'VD': return 120;
+                default: return 15;
+            }
+        };
+
+        const formatTime = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        };
+
+        // --- 5. RENDER FUNCTIONS ---
+        const appDiv = document.getElementById('app');
+
+        function render() {
+            if (state.screen === 'start') {
+                appDiv.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 p-4">
+                        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-blue-600 animate-fade-in">
+                            <div class="text-center mb-8">
+                                <div class="flex justify-center mb-4 text-yellow-500">
+                                    ${ICONS.award}
+                                </div>
+                                <h1 class="text-3xl font-bold text-blue-800 uppercase mb-2">Chinh Phục Bài 21</h1>
+                                <h2 class="text-xl font-semibold text-indigo-600">HỢP KIM (ALLOYS)</h2>
+                                <p class="text-gray-500 mt-2 text-sm">Giáo viên thiết kế: Nguyễn Mạnh Hưng</p>
+                            </div>
+
+                            <form id="start-form" class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-700 font-medium mb-1">Họ và tên học sinh</label>
+                                    <input type="text" id="input-name" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập họ tên của bạn...">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 font-medium mb-1">Lớp</label>
+                                    <input type="text" id="input-class" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ví dụ: 12A1">
+                                </div>
+                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 mt-4">
+                                    ${ICONS.play} BẮT ĐẦU CHƠI
+                                </button>
+                            </form>
+
+                            <div class="mt-8 text-center border-t pt-4">
+                                <button id="btn-teacher" class="text-xs text-gray-400 hover:text-gray-600 underline">
+                                    Dành cho Giáo viên (Xem kết quả)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('start-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('input-name').value.trim();
+                    const className = document.getElementById('input-class').value.trim();
+                    if (name && className) {
+                        startGame(name, className);
+                    }
+                });
+                document.getElementById('btn-teacher').addEventListener('click', () => {
+                    state.screen = 'teacher';
+                    render();
+                });
+
+            } else if (state.screen === 'playing') {
+                const q = state.questions[state.currentIdx];
+                const progress = ((state.currentIdx) / state.questions.length) * 100;
+                
+                let badgeClass = 'bg-green-400 text-green-900';
+                let typeText = 'Nhận biết';
+                if(q.type === 'TH') { badgeClass = 'bg-yellow-400 text-yellow-900'; typeText = 'Thông hiểu'; }
+                if(q.type === 'VD') { badgeClass = 'bg-red-400 text-red-900'; typeText = 'Vận dụng'; }
+
+                appDiv.innerHTML = `
+                    <div class="min-h-screen bg-gray-50 flex flex-col">
+                        <!-- Header -->
+                        <div class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
+                            <div class="flex items-center gap-4">
+                                <div class="text-sm font-semibold text-gray-600">
+                                    ${state.student.name} - ${state.student.className}
+                                </div>
+                                <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                                    Điểm: ${state.score.toFixed(1)}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 font-mono text-xl font-bold ${state.timer < 10 ? 'text-red-600 animate-pulse' : 'text-gray-700'}">
+                                ${ICONS.clock} ${formatTime(state.timer)}
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-gray-200 h-2">
+                            <div class="bg-green-500 h-2 transition-all duration-300" style="width: ${progress}%"></div>
+                        </div>
+
+                        <!-- Question Content -->
+                        <div class="flex-1 container mx-auto p-4 max-w-4xl flex flex-col justify-center animate-fade-in">
+                            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                                <!-- Question Header -->
+                                <div class="bg-indigo-600 p-6 text-white">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="bg-indigo-500 px-2 py-1 rounded text-xs uppercase font-bold tracking-wider">
+                                            Câu ${state.currentIdx + 1}/25
+                                        </span>
+                                        <span class="px-2 py-1 rounded text-xs font-bold uppercase ${badgeClass}">
+                                            ${typeText}
+                                        </span>
+                                    </div>
+                                    <h2 class="text-xl md:text-2xl font-bold leading-relaxed">${q.text}</h2>
+                                </div>
+
+                                <!-- Options Grid -->
+                                <div id="options-grid" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    ${state.shuffledOptions.map((opt, idx) => `
+                                        <button 
+                                            class="option-btn p-4 text-left rounded-xl border-2 transition-all hover:shadow-md bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-700 flex items-start gap-3"
+                                            data-idx="${idx}"
+                                            data-original-idx="${opt.originalIdx}"
+                                        >
+                                            <span class="w-6 h-6 rounded-full border border-current flex items-center justify-center text-sm shrink-0">
+                                                ${String.fromCharCode(65 + idx)}
+                                            </span>
+                                            <span>${opt.text}</span>
+                                        </button>
+                                    `).join('')}
+                                </div>
+
+                                <!-- Feedback Section (Hidden by default) -->
+                                <div id="feedback-section" class="hidden p-6 border-t">
+                                    <!-- Injected via JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.querySelectorAll('.option-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if (state.showFeedback) return;
+                        const originalIdx = parseInt(btn.getAttribute('data-original-idx'));
+                        const currentIdx = parseInt(btn.getAttribute('data-idx'));
+                        handleAnswer(originalIdx, currentIdx);
+                    });
+                });
+
+            } else if (state.screen === 'finished') {
+                const isHighPass = state.score >= 8;
+                const isPass = state.score >= 5;
+                const headerColor = isHighPass ? 'bg-green-500' : (isPass ? 'bg-yellow-500' : 'bg-red-500');
+                const iconSVG = isHighPass ? ICONS.award : ICONS.bookOpen;
+                const iconColor = isHighPass ? 'text-green-600' : 'text-blue-600';
+                const iconBg = isHighPass ? 'bg-green-100' : 'bg-blue-100';
+
+                appDiv.innerHTML = `
+                     <div class="min-h-screen bg-blue-50 flex items-center justify-center p-4">
+                        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center relative overflow-hidden animate-fade-in">
+                            <div class="absolute top-0 left-0 w-full h-2 ${headerColor}"></div>
+                            
+                            <div class="mb-6 flex justify-center">
+                                <div class="${iconBg} p-4 rounded-full ${iconColor}">
+                                    ${iconSVG}
+                                </div>
+                            </div>
+
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">Kết quả chung cuộc</h2>
+                            <p class="text-gray-500 mb-6">Bạn đã hoàn thành bài ôn tập Hợp kim!</p>
+
+                            <div class="bg-gray-100 rounded-xl p-6 mb-8">
+                                <div class="text-5xl font-extrabold text-blue-600 mb-2">${state.score.toFixed(1)}</div>
+                                <div class="text-sm text-gray-500 uppercase tracking-wide">Điểm số (Thang 10)</div>
+                                
+                                <div class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200">
+                                    <div>
+                                        <div class="text-2xl font-bold text-gray-800">${state.correctCount}/25</div>
+                                        <div class="text-xs text-gray-500">Số câu đúng</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-2xl font-bold text-gray-800">${((state.correctCount/25)*100).toFixed(0)}%</div>
+                                        <div class="text-xs text-gray-500">Tỷ lệ chính xác</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="btn-restart" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
+                                ${ICONS.rotateCcw} CHƠI LẠI
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('btn-restart').addEventListener('click', () => {
+                    state.screen = 'start';
+                    state.student = { name: '', className: '' };
+                    state.score = 0;
+                    state.correctCount = 0;
+                    render();
+                });
+
+            } else if (state.screen === 'teacher') {
+                appDiv.innerHTML = `
+                    <div class="min-h-screen bg-gray-100 p-6 animate-fade-in">
+                        <div class="max-w-6xl mx-auto">
+                            <div class="flex justify-between items-center mb-6">
+                                <button id="btn-back" class="text-gray-600 hover:text-gray-900 font-medium flex items-center gap-1">
+                                    ${ICONS.arrowLeft} Quay lại trang chủ
+                                </button>
+                                <h1 class="text-2xl font-bold text-gray-800">Bảng Kết Quả Học Sinh</h1>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                                <div class="flex flex-col md:flex-row gap-4 justify-between items-end md:items-center">
+                                    <div class="w-full md:w-1/3">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Lọc theo Lớp</label>
+                                        <input type="text" id="filter-input" placeholder="Nhập tên lớp (VD: 12A1)..." class="w-full p-2 border rounded-lg" value="${state.teacherFilter}">
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button id="btn-delete" class="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 opacity-50 cursor-not-allowed" disabled>
+                                            ${ICONS.trash2} Xóa lớp này
+                                        </button>
+                                        <button id="btn-download" class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 opacity-50 cursor-not-allowed" disabled>
+                                            ${ICONS.download} Tải Excel/CSV
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead class="bg-gray-50 border-b">
+                                            <tr>
+                                                <th class="p-4 text-xs font-bold text-gray-500 uppercase">Họ và Tên</th>
+                                                <th class="p-4 text-xs font-bold text-gray-500 uppercase">Lớp</th>
+                                                <th class="p-4 text-xs font-bold text-gray-500 uppercase text-center">Điểm (10)</th>
+                                                <th class="p-4 text-xs font-bold text-gray-500 uppercase text-center">Số câu đúng</th>
+                                                <th class="p-4 text-xs font-bold text-gray-500 uppercase text-right">Thời gian</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="table-body" class="divide-y divide-gray-100">
+                                            <tr><td colspan="5" class="p-8 text-center text-gray-500">Đang tải dữ liệu...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('btn-back').addEventListener('click', () => {
+                    state.screen = 'start';
+                    render();
+                });
+                
+                const filterInput = document.getElementById('filter-input');
+                filterInput.addEventListener('input', (e) => {
+                    state.teacherFilter = e.target.value;
+                    loadTeacherData(); // Reload table
+                });
+
+                loadTeacherData();
+            }
+        }
+
+        // --- 6. GAME LOGIC ---
+
+        function startGame(name, className) {
+            state.student = { name, className };
+            state.questions = shuffleArray(ORIGINAL_QUESTIONS);
+            state.currentIdx = 0;
+            state.score = 0;
+            state.correctCount = 0;
+            state.screen = 'playing';
+            
+            prepareQuestion();
+            render();
+            startTimer();
+        }
+
+        function prepareQuestion() {
+            if (state.currentIdx >= state.questions.length) return;
+            const q = state.questions[state.currentIdx];
+            
+            const optionsWithIdx = q.options.map((opt, idx) => ({ text: opt, originalIdx: idx }));
+            state.shuffledOptions = shuffleArray(optionsWithIdx);
+            
+            state.timer = getTimerDuration(q.type);
+            state.showFeedback = false;
+        }
+
+        function startTimer() {
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            state.timerInterval = setInterval(() => {
+                if (state.timer > 0) {
+                    state.timer--;
+                    const timerEl = document.querySelector('.bg-white .font-mono');
+                    if (timerEl) {
+                        timerEl.innerHTML = `${ICONS.clock} ${formatTime(state.timer)}`;
+                        if (state.timer < 10) {
+                            timerEl.classList.add('text-red-600', 'animate-pulse');
+                            timerEl.classList.remove('text-gray-700');
+                        }
+                    }
+                } else {
+                    clearInterval(state.timerInterval);
+                    handleTimeOut();
+                }
+            }, 1000);
+        }
+
+        function handleTimeOut() {
+            if (state.showFeedback) return;
+            showFeedbackUI(false, null);
+        }
+
+        function handleAnswer(originalIdx, domIdx) {
+            if (state.showFeedback) return;
+            clearInterval(state.timerInterval);
+            
+            const q = state.questions[state.currentIdx];
+            const isCorrect = originalIdx === q.correctAnswer;
+            
+            if (isCorrect) {
+                state.score += 0.4;
+                state.correctCount++;
+            }
+            
+            showFeedbackUI(isCorrect, domIdx);
+        }
+
+        function showFeedbackUI(isCorrect, selectedDomIdx) {
+            state.showFeedback = true;
+            const q = state.questions[state.currentIdx];
+            
+            const optionsGrid = document.getElementById('options-grid');
+            const feedbackSection = document.getElementById('feedback-section');
+            const btns = optionsGrid.querySelectorAll('button');
+
+            btns.forEach(btn => {
+                const oIdx = parseInt(btn.getAttribute('data-original-idx'));
+                const dIdx = parseInt(btn.getAttribute('data-idx'));
+                
+                btn.classList.add('disabled-option'); 
+
+                if (oIdx === q.correctAnswer) {
+                    btn.classList.remove('bg-white', 'text-gray-700', 'hover:bg-blue-50', 'hover:border-blue-400');
+                    btn.classList.add('correct-answer');
+                } else if (dIdx === selectedDomIdx && !isCorrect) {
+                    btn.classList.remove('bg-white', 'text-gray-700', 'hover:bg-blue-50', 'hover:border-blue-400');
+                    btn.classList.add('wrong-answer');
+                } else {
+                    btn.style.opacity = '0.5';
+                }
+            });
+
+            feedbackSection.innerHTML = `
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="${isCorrect ? 'text-green-600' : 'text-red-600'}">
+                        ${isCorrect ? ICONS.checkCircle : ICONS.xCircle}
+                    </div>
+                    <h3 class="text-lg font-bold ${isCorrect ? 'text-green-800' : 'text-red-800'}">
+                        ${isCorrect ? 'Chính xác!' : 'Tiếc quá, sai rồi!'}
+                    </h3>
+                </div>
+                <p class="text-gray-700 mb-4 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                    <span class="font-semibold text-indigo-600">Giải thích:</span> ${q.explanation}
+                </p>
+                <button id="btn-next" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow transition-colors flex items-center gap-2 ml-auto">
+                    ${state.currentIdx === state.questions.length - 1 ? 'Xem kết quả' : 'Câu tiếp theo'} ${ICONS.play}
+                </button>
+            `;
+            
+            feedbackSection.classList.remove('hidden');
+            feedbackSection.classList.add('animate-fade-in');
+
+            document.getElementById('btn-next').addEventListener('click', () => {
+                if (state.currentIdx < state.questions.length - 1) {
+                    state.currentIdx++;
+                    prepareQuestion();
+                    render();
+                    startTimer();
+                } else {
+                    finishGame();
+                }
+            });
+        }
+
+        // --- 7. LOCAL STORAGE LOGIC (REPLACING FIREBASE) ---
+        const DB_KEY = 'hopkim_scores_v1';
+
+        function finishGame() {
+            state.screen = 'finished';
+            render();
+            
+            // Save to LocalStorage
+            const newRecord = {
+                id: Date.now().toString(),
+                name: state.student.name,
+                className: state.student.className,
+                score: state.score,
+                correctCount: state.correctCount,
+                createdAt: new Date().toISOString()
+            };
+
+            const existingData = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+            existingData.push(newRecord);
+            localStorage.setItem(DB_KEY, JSON.stringify(existingData));
+        }
+
+        function loadTeacherData() {
+            const data = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+            // Sort by createdAt desc
+            data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            renderTableRows(data);
+        }
+
+        function renderTableRows(data) {
+            const tbody = document.getElementById('table-body');
+            const btnDelete = document.getElementById('btn-delete');
+            const btnDownload = document.getElementById('btn-download');
+            
+            if (!tbody) return;
+
+            const filtered = state.teacherFilter 
+                ? data.filter(r => r.className.toLowerCase().includes(state.teacherFilter.toLowerCase()))
+                : data;
+
+            if (filtered.length > 0 && state.teacherFilter) {
+                btnDelete.removeAttribute('disabled');
+                btnDelete.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnDelete.onclick = () => deleteClassData(filtered);
+            } else {
+                btnDelete.setAttribute('disabled', 'true');
+                btnDelete.classList.add('opacity-50', 'cursor-not-allowed');
+                btnDelete.onclick = null;
+            }
+
+            if (data.length > 0) {
+                btnDownload.removeAttribute('disabled');
+                btnDownload.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnDownload.onclick = () => downloadCSV(filtered);
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">Chưa có dữ liệu nào.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(r => `
+                <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                    <td class="p-4 font-medium text-gray-900">${r.name}</td>
+                    <td class="p-4 text-gray-600">${r.className}</td>
+                    <td class="p-4 text-center font-bold text-blue-600">${r.score ? r.score.toFixed(1) : '0.0'}</td>
+                    <td class="p-4 text-center text-gray-600">${r.correctCount}/25</td>
+                    <td class="p-4 text-right text-gray-500 text-sm">
+                        ${new Date(r.createdAt).toLocaleString('vi-VN')}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteClassData(dataToDelete) {
+            if (!state.teacherFilter) return;
+            if (confirm(`Bạn có chắc chắn muốn xóa TOÀN BỘ kết quả của lớp "${state.teacherFilter}" đang hiển thị không?`)) {
+                // Get current full list
+                let allData = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+                // Filter out the items to delete
+                const idsToDelete = new Set(dataToDelete.map(d => d.id));
+                const remainingData = allData.filter(item => !idsToDelete.has(item.id));
+                
+                localStorage.setItem(DB_KEY, JSON.stringify(remainingData));
+                alert("Đã xóa dữ liệu thành công!");
+                loadTeacherData();
+            }
+        }
+
+        function downloadCSV(data) {
+            const headers = ["Họ và tên", "Lớp", "Điểm số", "Số câu đúng", "Thời gian nộp"];
+            const rows = data.map(r => [
+                `"${r.name}"`, 
+                `"${r.className}"`, 
+                r.score.toFixed(1).replace('.', ','), 
+                r.correctCount,
+                new Date(r.createdAt).toLocaleString('vi-VN')
+            ]);
+
+            const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+                + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Ket_Qua_Hop_Kim_${state.teacherFilter || 'All'}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- INIT ---
+        render();
+
+    </script>
+</body>
+</html>
